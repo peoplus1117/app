@@ -1,7 +1,7 @@
 import streamlit as st
 
 # -----------------------------------------------------------
-# 1. [로직] 낙찰수수료 계산 (V25: 사용자 제공 수식 적용)
+# 1. [로직] 낙찰수수료 계산 (V25 유지: 사용자 제공 수식)
 # -----------------------------------------------------------
 def get_auction_fee(price, route):
     if route == "셀프":
@@ -23,7 +23,7 @@ def get_auction_fee(price, route):
         return 0
 
 # -----------------------------------------------------------
-# 2. [로직] 매입등록비 계산 (V23: 엑셀 수식 적용)
+# 2. [로직] 매입등록비 계산 (V23 유지: 엑셀 수식)
 # -----------------------------------------------------------
 def get_reg_cost(bid_price, p_type):
     threshold = 28500001
@@ -37,9 +37,9 @@ def get_reg_cost(bid_price, p_type):
         else: return 0
 
 # -----------------------------------------------------------
-# 3. 메인 앱
+# 3. 메인 앱 (UI 전면 개편)
 # -----------------------------------------------------------
-def smart_purchase_calculator_final_v27():
+def smart_purchase_calculator_final_v28():
     st.set_page_config(page_title="매입견적서 by 김희주", layout="wide")
     
     # [CSS] 스타일링
@@ -50,7 +50,7 @@ def smart_purchase_calculator_final_v27():
         
         h1 { font-size: clamp(1.5rem, 4vw, 2.5rem) !important; font-weight: 800 !important; }
         
-        .big-price { font-size: clamp(1.5rem, 3vw, 2.0rem); font-weight: 900; color: #4dabf7; }
+        .big-price { font-size: clamp(1.6rem, 3.5vw, 2.2rem); font-weight: 900; color: #4dabf7; margin-bottom: 0px; }
         .real-income { font-size: clamp(1.4rem, 2.5vw, 1.8rem); font-weight: bold; }
         .margin-rate { font-size: clamp(2.0rem, 4vw, 2.5rem); font-weight: 900; color: #ff6b6b; }
         
@@ -59,7 +59,15 @@ def smart_purchase_calculator_final_v27():
             color: #2e7d32;
             font-weight: bold;
             margin-top: -10px;
+            margin-bottom: 20px;
+        }
+        
+        .section-header {
+            font-size: 1.1rem;
+            font-weight: bold;
             margin-bottom: 10px;
+            border-left: 4px solid #4dabf7;
+            padding-left: 10px;
         }
 
         .detail-table-container { width: 100%; max-width: 450px; margin: 0 auto; }
@@ -81,9 +89,9 @@ def smart_purchase_calculator_final_v27():
     st.title("매입견적서 by 김희주")
 
     # =========================================================
-    # Step 1. 기본 정보
+    # Step 1. 상단 기본 정보 (가로 배열 유지)
     # =========================================================
-    col1, col2, col3 = st.columns([2, 1, 1])
+    col1, col2, col3 = st.columns([1.5, 1, 1])
     with col1:
         sales_price = st.number_input("판매 예정가", value=35000000, step=100000, format="%d")
         st.markdown(f"<div class='input-check'>확인: {sales_price:,} 원</div>", unsafe_allow_html=True)
@@ -95,40 +103,34 @@ def smart_purchase_calculator_final_v27():
     st.markdown("---")
 
     # =========================================================
-    # Step 2. 상품화 내용
+    # Step 2. 메인 화면 분할 (좌: 비용입력 / 우: 가이드 및 입찰)
     # =========================================================
-    st.subheader("상품화 비용 입력")
-    
-    c1, c2, c3, c4 = st.columns(4)
-    with c1:
-        cost_perf = st.radio("성능점검", [44000, 66000], key='check_cost')
-        cost_dent = st.number_input("판금/도색", value=0, step=10000, format="%d")
-        if cost_dent > 0: st.caption(f"확인: {cost_dent:,} 원")
-    with c2:
-        cost_ad = st.number_input("광고비", value=275000, step=1000, format="%d")
-        st.caption(f"확인: {cost_ad:,} 원")
-        cost_wheel = st.number_input("휠/타이어", value=0, step=10000, format="%d")
-        if cost_wheel > 0: st.caption(f"확인: {cost_wheel:,} 원")
-    with c3:
+    left_col, right_col = st.columns([1, 1], gap="large")
+
+    # [왼쪽 컬럼] 비용 입력 (세로 정렬)
+    with left_col:
+        st.markdown("<div class='section-header'>상품화 비용 입력</div>", unsafe_allow_html=True)
+        
+        # 성능점검비 (선택형 유지, 필요 시 삭제 가능)
+        cost_perf = st.radio("성능점검비", [44000, 66000], key='check_cost', horizontal=True)
+        
+        # 사용자 지정 4대 비용
         cost_transport = st.selectbox("교통비", [30000, 80000, 130000, 170000, 200000], key='t_cost')
+        cost_dent = st.number_input("판금/도색", value=0, step=10000, format="%d")
+        cost_wheel = st.number_input("휠/타이어", value=0, step=10000, format="%d")
         cost_etc = st.number_input("기타비용", value=0, step=10000, format="%d")
-        if cost_etc > 0: st.caption(f"확인: {cost_etc:,} 원")
-    with c4:
-        st.caption("※ 광택(12만), 입금(6만)은\n자동 포함됩니다.")
-    
-    cost_repair_total = cost_dent + cost_wheel + cost_etc
-    HIDDEN_POLISH = 120000
-    HIDDEN_DEPOSIT = 60000
 
-    st.markdown("---")
+        # 숨겨진 자동 비용 (광고비 추가됨)
+        HIDDEN_AD = 275000      # [수정] 자동 포함
+        HIDDEN_POLISH = 120000
+        HIDDEN_DEPOSIT = 60000
+        
+        st.caption(f"※ 광고({HIDDEN_AD//10000}만), 광택({HIDDEN_POLISH//10000}만), 입금({HIDDEN_DEPOSIT//10000}만) 자동 포함")
+        
+        cost_repair_total = cost_dent + cost_wheel + cost_etc
 
-    # =========================================================
-    # Step 3. [핵심] 적정 매입가 가이드 (V4 로직 수정)
-    # =========================================================
-    # 수식: (판매가 * 0.945) - (고정비 + 수수료 + 등록비)
-    # [수정] 가이드 계산 시 '금융이자(1%)' 차감 삭제 (엑셀 수식 일치화)
-    
-    fixed_costs = (cost_perf + cost_ad + cost_transport + 
+    # --- 계산 로직 (가이드 산출) ---
+    fixed_costs = (cost_perf + HIDDEN_AD + cost_transport + 
                    cost_repair_total + HIDDEN_POLISH + HIDDEN_DEPOSIT)
     
     budget_after_55 = int(sales_price * 0.945)
@@ -136,52 +138,55 @@ def smart_purchase_calculator_final_v27():
     guide_bid = 0
     start_point = budget_after_55 - fixed_costs
     
+    # 가이드 역산 루프
     for bid in range(start_point, start_point - 5000000, -10000):
         fee = get_auction_fee(bid, p_route)
-        reg = get_reg_cost(bid, p_type) 
-        
-        # [중요] 이자(Interest) 제외하고 계산
+        reg = get_reg_cost(bid, p_type)
+        # 이자 제외하고 계산 (V27 로직)
         if (bid + fixed_costs + fee + reg) <= budget_after_55:
             guide_bid = bid
             break
 
-    # =========================================================
-    # Step 4. 결과 화면
-    # =========================================================
-    c_res1, c_res2 = st.columns([1, 1])
-    with c_res1:
+    # [오른쪽 컬럼] 가이드 및 실제 입찰 (세로 정렬)
+    with right_col:
+        st.markdown("<div class='section-header'>입찰 금액 결정</div>", unsafe_allow_html=True)
+        
+        # 가이드 표시
         st.markdown("**적정 매입가 (Guide)**")
         st.markdown(f"<div class='big-price'>{guide_bid:,} 원</div>", unsafe_allow_html=True)
-    with c_res2:
-        st.markdown("**▼ 실제 입찰금액 입력**", unsafe_allow_html=True)
-        my_bid = st.number_input("입찰가", value=guide_bid, step=10000, format="%d", label_visibility="collapsed")
+        st.write("") # 간격 띄우기
         
+        # 실제 입찰 입력
+        st.markdown("**▼ 실제 입찰금액 입력**")
+        my_bid = st.number_input("입찰가 입력", value=guide_bid, step=10000, format="%d", label_visibility="collapsed")
+        
+        # 비율 확인
         bid_ratio = (my_bid / sales_price) * 100 if sales_price > 0 else 0
-        st.markdown(f"<div style='text-align:right; color:#2e7d32; font-weight:bold; font-size:0.9rem;'>확인: ({bid_ratio:.1f}%) {my_bid:,} 원</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='input-check' style='text-align:right;'>확인: ({bid_ratio:.1f}%) {my_bid:,} 원</div>", unsafe_allow_html=True)
 
-    # --- 실소득액 & 마진율 (실제 결과 계산엔 이자 포함) ---
+    st.markdown("---")
+
+    # =========================================================
+    # Step 3. 최종 결과 (하단)
+    # =========================================================
+    
+    # --- 실소득액 & 마진율 계산 ---
     real_fee = get_auction_fee(my_bid, p_route)
     real_reg = get_reg_cost(my_bid, p_type)
-    real_interest = int(my_bid * 0.01) # 실소득 계산할 땐 이자 1% 반영
+    real_interest = int(my_bid * 0.01) # 이자 1%
     
-    sum_vat_costs = cost_perf + cost_ad + real_fee
+    sum_vat_costs = cost_perf + HIDDEN_AD + real_fee
     sum_non_vat_costs = cost_transport + cost_repair_total + HIDDEN_POLISH + HIDDEN_DEPOSIT
     
-    # 1. 딜러 소득 (세전)
     gross_margin = sales_price - my_bid - sum_vat_costs
     dealer_income = int(gross_margin / 1.1)
     
-    # 2. 원천세 (3.3%)
     tax_base = dealer_income - real_reg
     tax_33 = int(tax_base * 0.033) if tax_base > 0 else 0
     
-    # 3. 실소득액
     real_income = dealer_income - (sum_non_vat_costs + real_reg + real_interest + tax_33)
-    
-    # 4. 예상 이익률 (매입가 대비)
+    # 이익률: 매입가(투자금) 대비
     real_margin_rate = (real_income / my_bid) * 100 if my_bid > 0 else 0
-
-    st.markdown("---")
 
     c_final1, c_final2 = st.columns(2)
     with c_final1:
@@ -194,7 +199,7 @@ def smart_purchase_calculator_final_v27():
     st.write("")
 
     # =========================================================
-    # Step 5. 상세 내역서
+    # Step 4. 상세 내역서
     # =========================================================
     with st.expander("🧾 상세 견적 내역 확인 (복사전용)", expanded=True):
         st.markdown(f"""
@@ -246,4 +251,4 @@ def smart_purchase_calculator_final_v27():
         """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
-    smart_purchase_calculator_final_v27()
+    smart_purchase_calculator_final_v28()
