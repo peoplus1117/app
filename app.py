@@ -1,4 +1,5 @@
 import streamlit as st
+import math # [추가] 올림 처리를 위한 수학 모듈
 
 # -----------------------------------------------------------
 # 1. [로직] 낙찰수수료 계산 (V25 유지: 사용자 제공 수식)
@@ -37,9 +38,9 @@ def get_reg_cost(bid_price, p_type):
         else: return 0
 
 # -----------------------------------------------------------
-# 3. 메인 앱 (UI 전면 개편)
+# 3. 메인 앱 (V29: 가이드 올림 처리 적용)
 # -----------------------------------------------------------
-def smart_purchase_calculator_final_v28():
+def smart_purchase_calculator_final_v29():
     st.set_page_config(page_title="매입견적서 by 김희주", layout="wide")
     
     # [CSS] 스타일링
@@ -89,7 +90,7 @@ def smart_purchase_calculator_final_v28():
     st.title("매입견적서 by 김희주")
 
     # =========================================================
-    # Step 1. 상단 기본 정보 (가로 배열 유지)
+    # Step 1. 상단 기본 정보
     # =========================================================
     col1, col2, col3 = st.columns([1.5, 1, 1])
     with col1:
@@ -103,25 +104,21 @@ def smart_purchase_calculator_final_v28():
     st.markdown("---")
 
     # =========================================================
-    # Step 2. 메인 화면 분할 (좌: 비용입력 / 우: 가이드 및 입찰)
+    # Step 2. 메인 화면 분할 (좌: 비용 / 우: 가이드)
     # =========================================================
     left_col, right_col = st.columns([1, 1], gap="large")
 
-    # [왼쪽 컬럼] 비용 입력 (세로 정렬)
+    # [왼쪽] 비용 입력
     with left_col:
         st.markdown("<div class='section-header'>상품화 비용 입력</div>", unsafe_allow_html=True)
         
-        # 성능점검비 (선택형 유지, 필요 시 삭제 가능)
         cost_perf = st.radio("성능점검비", [44000, 66000], key='check_cost', horizontal=True)
-        
-        # 사용자 지정 4대 비용
         cost_transport = st.selectbox("교통비", [30000, 80000, 130000, 170000, 200000], key='t_cost')
         cost_dent = st.number_input("판금/도색", value=0, step=10000, format="%d")
         cost_wheel = st.number_input("휠/타이어", value=0, step=10000, format="%d")
         cost_etc = st.number_input("기타비용", value=0, step=10000, format="%d")
 
-        # 숨겨진 자동 비용 (광고비 추가됨)
-        HIDDEN_AD = 275000      # [수정] 자동 포함
+        HIDDEN_AD = 275000
         HIDDEN_POLISH = 120000
         HIDDEN_DEPOSIT = 60000
         
@@ -138,42 +135,42 @@ def smart_purchase_calculator_final_v28():
     guide_bid = 0
     start_point = budget_after_55 - fixed_costs
     
-    # 가이드 역산 루프
+    # 1차 가이드 역산
     for bid in range(start_point, start_point - 5000000, -10000):
         fee = get_auction_fee(bid, p_route)
         reg = get_reg_cost(bid, p_type)
-        # 이자 제외하고 계산 (V27 로직)
         if (bid + fixed_costs + fee + reg) <= budget_after_55:
             guide_bid = bid
             break
+            
+    # [수정] 천원 단위 올림 처리 (10,000원 단위로 맞춤)
+    # 예: 30,124,000 -> 30,130,000
+    if guide_bid > 0:
+        guide_bid = math.ceil(guide_bid / 10000) * 10000
 
-    # [오른쪽 컬럼] 가이드 및 실제 입찰 (세로 정렬)
+    # [오른쪽] 가이드 및 입찰
     with right_col:
         st.markdown("<div class='section-header'>입찰 금액 결정</div>", unsafe_allow_html=True)
         
-        # 가이드 표시
         st.markdown("**적정 매입가 (Guide)**")
         st.markdown(f"<div class='big-price'>{guide_bid:,} 원</div>", unsafe_allow_html=True)
-        st.write("") # 간격 띄우기
+        st.write("")
         
-        # 실제 입찰 입력
         st.markdown("**▼ 실제 입찰금액 입력**")
+        # 올림 처리된 가이드 금액이 기본값으로 들어감
         my_bid = st.number_input("입찰가 입력", value=guide_bid, step=10000, format="%d", label_visibility="collapsed")
         
-        # 비율 확인
         bid_ratio = (my_bid / sales_price) * 100 if sales_price > 0 else 0
         st.markdown(f"<div class='input-check' style='text-align:right;'>확인: ({bid_ratio:.1f}%) {my_bid:,} 원</div>", unsafe_allow_html=True)
 
     st.markdown("---")
 
     # =========================================================
-    # Step 3. 최종 결과 (하단)
+    # Step 3. 최종 결과
     # =========================================================
-    
-    # --- 실소득액 & 마진율 계산 ---
     real_fee = get_auction_fee(my_bid, p_route)
     real_reg = get_reg_cost(my_bid, p_type)
-    real_interest = int(my_bid * 0.01) # 이자 1%
+    real_interest = int(my_bid * 0.01)
     
     sum_vat_costs = cost_perf + HIDDEN_AD + real_fee
     sum_non_vat_costs = cost_transport + cost_repair_total + HIDDEN_POLISH + HIDDEN_DEPOSIT
@@ -185,7 +182,6 @@ def smart_purchase_calculator_final_v28():
     tax_33 = int(tax_base * 0.033) if tax_base > 0 else 0
     
     real_income = dealer_income - (sum_non_vat_costs + real_reg + real_interest + tax_33)
-    # 이익률: 매입가(투자금) 대비
     real_margin_rate = (real_income / my_bid) * 100 if my_bid > 0 else 0
 
     c_final1, c_final2 = st.columns(2)
@@ -251,4 +247,4 @@ def smart_purchase_calculator_final_v28():
         """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
-    smart_purchase_calculator_final_v28()
+    smart_purchase_calculator_final_v29()
