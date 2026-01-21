@@ -1,8 +1,8 @@
 import streamlit as st
-import math # [추가] 올림 처리를 위한 수학 모듈
+import math
 
 # -----------------------------------------------------------
-# 1. [로직] 낙찰수수료 계산 (V25 유지: 사용자 제공 수식)
+# 1. [로직] 낙찰수수료 (사용자 제공 수식 유지)
 # -----------------------------------------------------------
 def get_auction_fee(price, route):
     if route == "셀프":
@@ -24,7 +24,7 @@ def get_auction_fee(price, route):
         return 0
 
 # -----------------------------------------------------------
-# 2. [로직] 매입등록비 계산 (V23 유지: 엑셀 수식)
+# 2. [로직] 매입등록비 (엑셀 수식 유지)
 # -----------------------------------------------------------
 def get_reg_cost(bid_price, p_type):
     threshold = 28500001
@@ -38,12 +38,11 @@ def get_reg_cost(bid_price, p_type):
         else: return 0
 
 # -----------------------------------------------------------
-# 3. 메인 앱 (V29: 가이드 올림 처리 적용)
+# 3. 메인 앱 (V30: 입력 단위 만원 변경)
 # -----------------------------------------------------------
-def smart_purchase_calculator_final_v29():
+def smart_purchase_calculator_final_v30():
     st.set_page_config(page_title="매입견적서 by 김희주", layout="wide")
     
-    # [CSS] 스타일링
     st.markdown("""
     <style>
         html, body, [class*="css"] { font-size: 16px; }
@@ -90,12 +89,19 @@ def smart_purchase_calculator_final_v29():
     st.title("매입견적서 by 김희주")
 
     # =========================================================
-    # Step 1. 상단 기본 정보
+    # Step 1. 상단 기본 정보 (입력 단위 개선)
     # =========================================================
     col1, col2, col3 = st.columns([1.5, 1, 1])
     with col1:
-        sales_price = st.number_input("판매 예정가", value=35000000, step=100000, format="%d")
+        # [수정] 만원 단위 입력 (기본값 3500 = 3500만원)
+        sales_input = st.number_input("판매 예정가 (단위: 만원)", value=3500, step=10, format="%d")
+        
+        # [계산] 실제 금액으로 변환
+        sales_price = sales_input * 10000
+        
+        # 확인 텍스트는 전체 금액으로 표시
         st.markdown(f"<div class='input-check'>확인: {sales_price:,} 원</div>", unsafe_allow_html=True)
+        
     with col2:
         p_type = st.radio("매입유형", ["개인", "사업자"], key='p_type')
     with col3:
@@ -104,11 +110,10 @@ def smart_purchase_calculator_final_v29():
     st.markdown("---")
 
     # =========================================================
-    # Step 2. 메인 화면 분할 (좌: 비용 / 우: 가이드)
+    # Step 2. 메인 화면 분할
     # =========================================================
     left_col, right_col = st.columns([1, 1], gap="large")
 
-    # [왼쪽] 비용 입력
     with left_col:
         st.markdown("<div class='section-header'>상품화 비용 입력</div>", unsafe_allow_html=True)
         
@@ -126,7 +131,7 @@ def smart_purchase_calculator_final_v29():
         
         cost_repair_total = cost_dent + cost_wheel + cost_etc
 
-    # --- 계산 로직 (가이드 산출) ---
+    # --- 가이드 산출 ---
     fixed_costs = (cost_perf + HIDDEN_AD + cost_transport + 
                    cost_repair_total + HIDDEN_POLISH + HIDDEN_DEPOSIT)
     
@@ -135,7 +140,6 @@ def smart_purchase_calculator_final_v29():
     guide_bid = 0
     start_point = budget_after_55 - fixed_costs
     
-    # 1차 가이드 역산
     for bid in range(start_point, start_point - 5000000, -10000):
         fee = get_auction_fee(bid, p_route)
         reg = get_reg_cost(bid, p_type)
@@ -143,12 +147,10 @@ def smart_purchase_calculator_final_v29():
             guide_bid = bid
             break
             
-    # [수정] 천원 단위 올림 처리 (10,000원 단위로 맞춤)
-    # 예: 30,124,000 -> 30,130,000
+    # 천원 단위 올림 처리
     if guide_bid > 0:
         guide_bid = math.ceil(guide_bid / 10000) * 10000
 
-    # [오른쪽] 가이드 및 입찰
     with right_col:
         st.markdown("<div class='section-header'>입찰 금액 결정</div>", unsafe_allow_html=True)
         
@@ -157,7 +159,6 @@ def smart_purchase_calculator_final_v29():
         st.write("")
         
         st.markdown("**▼ 실제 입찰금액 입력**")
-        # 올림 처리된 가이드 금액이 기본값으로 들어감
         my_bid = st.number_input("입찰가 입력", value=guide_bid, step=10000, format="%d", label_visibility="collapsed")
         
         bid_ratio = (my_bid / sales_price) * 100 if sales_price > 0 else 0
@@ -247,4 +248,4 @@ def smart_purchase_calculator_final_v29():
         """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
-    smart_purchase_calculator_final_v29()
+    smart_purchase_calculator_final_v30()
