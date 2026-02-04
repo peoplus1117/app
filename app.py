@@ -2,7 +2,7 @@ import streamlit as st
 import math
 
 # -----------------------------------------------------------
-# 1. [로직] 낙찰수수료 (기존 유지)
+# 1. [로직] 낙찰수수료
 # -----------------------------------------------------------
 def get_auction_fee(price, route):
     if route == "셀프":
@@ -24,7 +24,7 @@ def get_auction_fee(price, route):
         return 0
 
 # -----------------------------------------------------------
-# 2. [로직] 매입등록비 (기존 유지)
+# 2. [로직] 매입등록비
 # -----------------------------------------------------------
 def get_reg_cost(bid_price, p_type):
     threshold = 28500001
@@ -38,9 +38,9 @@ def get_reg_cost(bid_price, p_type):
         else: return 0
 
 # -----------------------------------------------------------
-# 3. 메인 앱 (V31: 교통비 추가 및 만원 단위 단축 입력 적용)
+# 3. 메인 앱 (V33: 원클릭 복사 버튼 추가)
 # -----------------------------------------------------------
-def smart_purchase_calculator_final_v31():
+def smart_purchase_calculator_final_v33():
     st.set_page_config(page_title="매입견적서 by 김희주", layout="wide")
     
     st.markdown("""
@@ -81,36 +81,29 @@ def smart_purchase_calculator_final_v31():
     </style>
     """, unsafe_allow_html=True)
 
-    # [초기화] 세션 상태값 초기화
+    # [초기화]
     if 'p_type' not in st.session_state: st.session_state['p_type'] = "개인"
     if 'p_route' not in st.session_state: st.session_state['p_route'] = "셀프"
     if 't_cost' not in st.session_state: st.session_state['t_cost'] = 30000
     if 'check_cost' not in st.session_state: st.session_state['check_cost'] = 66000
-    
-    # [추가] 상품화 비용 입력을 위한 세션 초기화 (자동 변환을 위해 필요)
     if 'cost_dent' not in st.session_state: st.session_state['cost_dent'] = 0
     if 'cost_wheel' not in st.session_state: st.session_state['cost_wheel'] = 0
     if 'cost_etc' not in st.session_state: st.session_state['cost_etc'] = 0
 
-    # [기능] 입력값 자동 변환 콜백 함수 (17 -> 170,000)
+    # [기능] 단축 입력 변환기
     def smart_unit_converter(key):
         val = st.session_state[key]
-        # 0보다 크고 1000 이하인 경우 만원 단위로 간주하여 곱하기 10000
-        if 0 < val <= 1000:
+        if 0 < val <= 20000: 
             st.session_state[key] = val * 10000
 
     st.title("매입견적서 by 김희주")
 
-    # =========================================================
-    # Step 1. 상단 기본 정보
-    # =========================================================
+    # Step 1. 상단 정보
     col1, col2, col3 = st.columns([1.5, 1, 1])
     with col1:
-        # 판매 예정가 (만원 단위 입력)
         sales_input = st.number_input("판매 예정가 (단위: 만원)", value=3500, step=10, format="%d")
         sales_price = sales_input * 10000
         st.markdown(f"<div class='input-check'>확인: {sales_price:,} 원</div>", unsafe_allow_html=True)
-        
     with col2:
         p_type = st.radio("매입유형", ["개인", "사업자"], key='p_type')
     with col3:
@@ -118,55 +111,33 @@ def smart_purchase_calculator_final_v31():
 
     st.markdown("---")
 
-    # =========================================================
-    # Step 2. 메인 화면 분할
-    # =========================================================
+    # Step 2. 메인 입력
     left_col, right_col = st.columns([1, 1], gap="large")
 
     with left_col:
         st.markdown("<div class='section-header'>상품화 비용 입력</div>", unsafe_allow_html=True)
-        
         cost_perf = st.radio("성능점검비", [44000, 66000], key='check_cost', horizontal=True)
-        
-        # [수정] 교통비 옵션 추가 (5만원, 60만원) 및 정렬
         transport_options = [30000, 50000, 80000, 130000, 170000, 200000, 600000]
         cost_transport = st.selectbox("교통비", transport_options, key='t_cost')
         
-        # [수정] 만원 단위 숏컷 입력 적용 (on_change 사용)
-        st.caption("※ 비용 입력 팁: 17 입력시 → 170,000원으로 자동 변환")
+        st.caption("※ 비용/입찰가 입력 팁: 17 입력시 → 170,000원 / 3500 입력시 → 3,500만원")
         
-        cost_dent = st.number_input(
-            "판금/도색", step=10000, format="%d", 
-            key='cost_dent', on_change=smart_unit_converter, args=('cost_dent',)
-        )
-        
-        cost_wheel = st.number_input(
-            "휠/타이어", step=10000, format="%d", 
-            key='cost_wheel', on_change=smart_unit_converter, args=('cost_wheel',)
-        )
-        
-        cost_etc = st.number_input(
-            "기타비용", step=10000, format="%d", 
-            key='cost_etc', on_change=smart_unit_converter, args=('cost_etc',)
-        )
+        cost_dent = st.number_input("판금/도색", step=10000, format="%d", key='cost_dent', on_change=smart_unit_converter, args=('cost_dent',))
+        cost_wheel = st.number_input("휠/타이어", step=10000, format="%d", key='cost_wheel', on_change=smart_unit_converter, args=('cost_wheel',))
+        cost_etc = st.number_input("기타비용", step=10000, format="%d", key='cost_etc', on_change=smart_unit_converter, args=('cost_etc',))
 
         HIDDEN_AD = 275000
         HIDDEN_POLISH = 120000
         HIDDEN_DEPOSIT = 60000
-        
         st.caption(f"※ 광고({HIDDEN_AD//10000}만), 광택({HIDDEN_POLISH//10000}만), 입금({HIDDEN_DEPOSIT//10000}만) 자동 포함")
-        
         cost_repair_total = cost_dent + cost_wheel + cost_etc
 
-    # --- 가이드 산출 ---
-    fixed_costs = (cost_perf + HIDDEN_AD + cost_transport + 
-                   cost_repair_total + HIDDEN_POLISH + HIDDEN_DEPOSIT)
-    
+    # 가이드 계산
+    fixed_costs = (cost_perf + HIDDEN_AD + cost_transport + cost_repair_total + HIDDEN_POLISH + HIDDEN_DEPOSIT)
     budget_after_55 = int(sales_price * 0.945)
     
     guide_bid = 0
     start_point = budget_after_55 - fixed_costs
-    
     for bid in range(start_point, start_point - 5000000, -10000):
         fee = get_auction_fee(bid, p_route)
         reg = get_reg_cost(bid, p_type)
@@ -174,28 +145,30 @@ def smart_purchase_calculator_final_v31():
             guide_bid = bid
             break
             
-    # 천원 단위 올림 처리
     if guide_bid > 0:
         guide_bid = math.ceil(guide_bid / 10000) * 10000
 
+    # Guide 동기화
+    if 'prev_guide_bid' not in st.session_state:
+        st.session_state['prev_guide_bid'] = -1
+    if guide_bid != st.session_state['prev_guide_bid']:
+        st.session_state['my_bid_input'] = guide_bid
+        st.session_state['prev_guide_bid'] = guide_bid
+
     with right_col:
         st.markdown("<div class='section-header'>입찰 금액 결정</div>", unsafe_allow_html=True)
-        
         st.markdown("**적정 매입가 (Guide)**")
         st.markdown(f"<div class='big-price'>{guide_bid:,} 원</div>", unsafe_allow_html=True)
         st.write("")
-        
         st.markdown("**▼ 실제 입찰금액 입력**")
-        my_bid = st.number_input("입찰가 입력", value=guide_bid, step=10000, format="%d", label_visibility="collapsed")
+        my_bid = st.number_input("입찰가 입력", step=10000, format="%d", label_visibility="collapsed", key='my_bid_input', on_change=smart_unit_converter, args=('my_bid_input',))
         
         bid_ratio = (my_bid / sales_price) * 100 if sales_price > 0 else 0
         st.markdown(f"<div class='input-check' style='text-align:right;'>확인: ({bid_ratio:.1f}%) {my_bid:,} 원</div>", unsafe_allow_html=True)
 
     st.markdown("---")
 
-    # =========================================================
     # Step 3. 최종 결과
-    # =========================================================
     real_fee = get_auction_fee(my_bid, p_route)
     real_reg = get_reg_cost(my_bid, p_type)
     real_interest = int(my_bid * 0.01)
@@ -223,56 +196,47 @@ def smart_purchase_calculator_final_v31():
     st.write("")
 
     # =========================================================
-    # Step 4. 상세 내역서
+    # Step 4. 상세 내역서 (원클릭 복사 기능 추가)
     # =========================================================
     with st.expander("🧾 상세 견적 내역 확인 (복사전용)", expanded=True):
+        
+        # 1. 보기 좋은 시각적 테이블 (HTML)
         st.markdown(f"""
         <div class='detail-table-container'>
             <table class='detail-table'>
-                <tr>
-                    <td class='detail-label'>판매가</td>
-                    <td class='detail-value'>{sales_price:,} 원</td>
-                </tr>
-                <tr>
-                    <td class='detail-label'>매입가</td>
-                    <td class='detail-value' style='color:#4dabf7;'>{my_bid:,} 원</td>
-                </tr>
-                <tr>
-                    <td class='detail-label'>예상이익율</td>
-                    <td class='detail-value' style='color:#ff6b6b;'>{real_margin_rate:.2f} %</td>
-                </tr>
-                <tr>
-                    <td class='detail-label'>실소득액</td>
-                    <td class='detail-value'>{real_income:,} 원</td>
-                </tr>
+                <tr><td class='detail-label'>판매가</td><td class='detail-value'>{sales_price:,} 원</td></tr>
+                <tr><td class='detail-label'>매입가</td><td class='detail-value' style='color:#4dabf7;'>{my_bid:,} 원</td></tr>
+                <tr><td class='detail-label'>예상이익율</td><td class='detail-value' style='color:#ff6b6b;'>{real_margin_rate:.2f} %</td></tr>
+                <tr><td class='detail-label'>실소득액</td><td class='detail-value'>{real_income:,} 원</td></tr>
                 <tr><td colspan='2' style='height:8px; border-bottom:1px dashed #777;'></td></tr>
-                <tr>
-                    <td class='detail-label'>교통비</td>
-                    <td class='detail-value'>{cost_transport:,} 원</td>
-                </tr>
-                <tr>
-                    <td class='detail-label'>판금/도색</td>
-                    <td class='detail-value'>{cost_dent:,} 원</td>
-                </tr>
-                <tr>
-                    <td class='detail-label'>휠/타이어</td>
-                    <td class='detail-value'>{cost_wheel:,} 원</td>
-                </tr>
-                <tr>
-                    <td class='detail-label'>기타비용</td>
-                    <td class='detail-value'>{cost_etc:,} 원</td>
-                </tr>
-                <tr>
-                    <td class='detail-label'>매입등록비용</td>
-                    <td class='detail-value'>{real_reg:,} 원</td>
-                </tr>
-                <tr>
-                    <td class='detail-label'>낙찰수수료</td>
-                    <td class='detail-value'>{real_fee:,} 원</td>
-                </tr>
+                <tr><td class='detail-label'>교통비</td><td class='detail-value'>{cost_transport:,} 원</td></tr>
+                <tr><td class='detail-label'>판금/도색</td><td class='detail-value'>{cost_dent:,} 원</td></tr>
+                <tr><td class='detail-label'>휠/타이어</td><td class='detail-value'>{cost_wheel:,} 원</td></tr>
+                <tr><td class='detail-label'>기타비용</td><td class='detail-value'>{cost_etc:,} 원</td></tr>
+                <tr><td class='detail-label'>매입등록비용</td><td class='detail-value'>{real_reg:,} 원</td></tr>
+                <tr><td class='detail-label'>낙찰수수료</td><td class='detail-value'>{real_fee:,} 원</td></tr>
             </table>
         </div>
         """, unsafe_allow_html=True)
 
+        st.write("")
+        st.caption("👇 아래 박스 우측 상단의 '복사 아이콘(📄)'을 누르면 텍스트로 복사됩니다.")
+        
+        # 2. 복사 붙여넣기용 텍스트 생성 (Code Block 활용)
+        copy_text = f"""판매가   : {sales_price:,} 원
+매입가   : {my_bid:,} 원
+예상이익율 : {real_margin_rate:.2f} %
+실소득액  : {real_income:,} 원
+-------------------------
+교통비    : {cost_transport:,} 원
+판금/도색  : {cost_dent:,} 원
+휠/타이어  : {cost_wheel:,} 원
+기타비용   : {cost_etc:,} 원
+매입등록비 : {real_reg:,} 원
+낙찰수수료 : {real_fee:,} 원"""
+        
+        # st.code를 사용하면 우측 상단에 자동으로 복사 버튼이 생깁니다.
+        st.code(copy_text, language="text")
+
 if __name__ == "__main__":
-    smart_purchase_calculator_final_v31()
+    smart_purchase_calculator_final_v33()
