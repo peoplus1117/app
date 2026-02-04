@@ -38,9 +38,9 @@ def get_reg_cost(bid_price, p_type):
         else: return 0
 
 # -----------------------------------------------------------
-# 3. 메인 앱 (V33: 원클릭 복사 버튼 추가)
+# 3. 메인 앱 (V34: 상세내역 좌우 배치로 복사 버튼 상단 이동)
 # -----------------------------------------------------------
-def smart_purchase_calculator_final_v33():
+def smart_purchase_calculator_final_v34():
     st.set_page_config(page_title="매입견적서 by 김희주", layout="wide")
     
     st.markdown("""
@@ -196,34 +196,38 @@ def smart_purchase_calculator_final_v33():
     st.write("")
 
     # =========================================================
-    # Step 4. 상세 내역서 (원클릭 복사 기능 추가)
+    # Step 4. 상세 내역서 (좌우 배치로 복사 버튼 상단 노출)
     # =========================================================
-    with st.expander("🧾 상세 견적 내역 확인 (복사전용)", expanded=True):
+    with st.expander("🧾 상세 견적 및 복사 (펼치기)", expanded=True):
         
-        # 1. 보기 좋은 시각적 테이블 (HTML)
-        st.markdown(f"""
-        <div class='detail-table-container'>
-            <table class='detail-table'>
-                <tr><td class='detail-label'>판매가</td><td class='detail-value'>{sales_price:,} 원</td></tr>
-                <tr><td class='detail-label'>매입가</td><td class='detail-value' style='color:#4dabf7;'>{my_bid:,} 원</td></tr>
-                <tr><td class='detail-label'>예상이익율</td><td class='detail-value' style='color:#ff6b6b;'>{real_margin_rate:.2f} %</td></tr>
-                <tr><td class='detail-label'>실소득액</td><td class='detail-value'>{real_income:,} 원</td></tr>
-                <tr><td colspan='2' style='height:8px; border-bottom:1px dashed #777;'></td></tr>
-                <tr><td class='detail-label'>교통비</td><td class='detail-value'>{cost_transport:,} 원</td></tr>
-                <tr><td class='detail-label'>판금/도색</td><td class='detail-value'>{cost_dent:,} 원</td></tr>
-                <tr><td class='detail-label'>휠/타이어</td><td class='detail-value'>{cost_wheel:,} 원</td></tr>
-                <tr><td class='detail-label'>기타비용</td><td class='detail-value'>{cost_etc:,} 원</td></tr>
-                <tr><td class='detail-label'>매입등록비용</td><td class='detail-value'>{real_reg:,} 원</td></tr>
-                <tr><td class='detail-label'>낙찰수수료</td><td class='detail-value'>{real_fee:,} 원</td></tr>
-            </table>
-        </div>
-        """, unsafe_allow_html=True)
-
-        st.write("")
-        st.caption("👇 아래 박스 우측 상단의 '복사 아이콘(📄)'을 누르면 텍스트로 복사됩니다.")
+        # 좌우 1:1 비율로 컬럼 분할
+        d_col1, d_col2 = st.columns([1, 1], gap="medium")
         
-        # 2. 복사 붙여넣기용 텍스트 생성 (Code Block 활용)
-        copy_text = f"""판매가   : {sales_price:,} 원
+        with d_col1:
+            st.caption("▼ 상세 내역 (확인용)")
+            st.markdown(f"""
+            <div class='detail-table-container'>
+                <table class='detail-table'>
+                    <tr><td class='detail-label'>판매가</td><td class='detail-value'>{sales_price:,} 원</td></tr>
+                    <tr><td class='detail-label'>매입가</td><td class='detail-value' style='color:#4dabf7;'>{my_bid:,} 원</td></tr>
+                    <tr><td class='detail-label'>예상이익율</td><td class='detail-value' style='color:#ff6b6b;'>{real_margin_rate:.2f} %</td></tr>
+                    <tr><td class='detail-label'>실소득액</td><td class='detail-value'>{real_income:,} 원</td></tr>
+                    <tr><td colspan='2' style='height:8px; border-bottom:1px dashed #777;'></td></tr>
+                    <tr><td class='detail-label'>교통비</td><td class='detail-value'>{cost_transport:,} 원</td></tr>
+                    <tr><td class='detail-label'>판금/도색</td><td class='detail-value'>{cost_dent:,} 원</td></tr>
+                    <tr><td class='detail-label'>휠/타이어</td><td class='detail-value'>{cost_wheel:,} 원</td></tr>
+                    <tr><td class='detail-label'>기타비용</td><td class='detail-value'>{cost_etc:,} 원</td></tr>
+                    <tr><td class='detail-label'>매입등록비</td><td class='detail-value'>{real_reg:,} 원</td></tr>
+                    <tr><td class='detail-label'>낙찰수수료</td><td class='detail-value'>{real_fee:,} 원</td></tr>
+                </table>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        with d_col2:
+            st.caption("▼ 복사 전용 텍스트 (우측상단 아이콘 클릭)")
+            
+            # 복사 붙여넣기용 텍스트 생성
+            copy_text = f"""판매가   : {sales_price:,} 원
 매입가   : {my_bid:,} 원
 예상이익율 : {real_margin_rate:.2f} %
 실소득액  : {real_income:,} 원
@@ -234,9 +238,9 @@ def smart_purchase_calculator_final_v33():
 기타비용   : {cost_etc:,} 원
 매입등록비 : {real_reg:,} 원
 낙찰수수료 : {real_fee:,} 원"""
-        
-        # st.code를 사용하면 우측 상단에 자동으로 복사 버튼이 생깁니다.
-        st.code(copy_text, language="text")
+            
+            # 높이를 지정하여 버튼이 잘 보이도록 배치
+            st.code(copy_text, language="text")
 
 if __name__ == "__main__":
-    smart_purchase_calculator_final_v33()
+    smart_purchase_calculator_final_v34()
