@@ -2,7 +2,7 @@ import streamlit as st
 import math
 
 # -----------------------------------------------------------
-# 1. [로직] 낙찰수수료 (사용자 제공 수식 유지)
+# 1. [로직] 낙찰수수료 (기존 유지)
 # -----------------------------------------------------------
 def get_auction_fee(price, route):
     if route == "셀프":
@@ -24,7 +24,7 @@ def get_auction_fee(price, route):
         return 0
 
 # -----------------------------------------------------------
-# 2. [로직] 매입등록비 (엑셀 수식 유지)
+# 2. [로직] 매입등록비 (기존 유지)
 # -----------------------------------------------------------
 def get_reg_cost(bid_price, p_type):
     threshold = 28500001
@@ -38,9 +38,9 @@ def get_reg_cost(bid_price, p_type):
         else: return 0
 
 # -----------------------------------------------------------
-# 3. 메인 앱 (V30: 입력 단위 만원 변경)
+# 3. 메인 앱 (V31: 교통비 추가 및 만원 단위 단축 입력 적용)
 # -----------------------------------------------------------
-def smart_purchase_calculator_final_v30():
+def smart_purchase_calculator_final_v31():
     st.set_page_config(page_title="매입견적서 by 김희주", layout="wide")
     
     st.markdown("""
@@ -81,25 +81,34 @@ def smart_purchase_calculator_final_v30():
     </style>
     """, unsafe_allow_html=True)
 
+    # [초기화] 세션 상태값 초기화
     if 'p_type' not in st.session_state: st.session_state['p_type'] = "개인"
     if 'p_route' not in st.session_state: st.session_state['p_route'] = "셀프"
     if 't_cost' not in st.session_state: st.session_state['t_cost'] = 30000
     if 'check_cost' not in st.session_state: st.session_state['check_cost'] = 66000
+    
+    # [추가] 상품화 비용 입력을 위한 세션 초기화 (자동 변환을 위해 필요)
+    if 'cost_dent' not in st.session_state: st.session_state['cost_dent'] = 0
+    if 'cost_wheel' not in st.session_state: st.session_state['cost_wheel'] = 0
+    if 'cost_etc' not in st.session_state: st.session_state['cost_etc'] = 0
+
+    # [기능] 입력값 자동 변환 콜백 함수 (17 -> 170,000)
+    def smart_unit_converter(key):
+        val = st.session_state[key]
+        # 0보다 크고 1000 이하인 경우 만원 단위로 간주하여 곱하기 10000
+        if 0 < val <= 1000:
+            st.session_state[key] = val * 10000
 
     st.title("매입견적서 by 김희주")
 
     # =========================================================
-    # Step 1. 상단 기본 정보 (입력 단위 개선)
+    # Step 1. 상단 기본 정보
     # =========================================================
     col1, col2, col3 = st.columns([1.5, 1, 1])
     with col1:
-        # [수정] 만원 단위 입력 (기본값 3500 = 3500만원)
+        # 판매 예정가 (만원 단위 입력)
         sales_input = st.number_input("판매 예정가 (단위: 만원)", value=3500, step=10, format="%d")
-        
-        # [계산] 실제 금액으로 변환
         sales_price = sales_input * 10000
-        
-        # 확인 텍스트는 전체 금액으로 표시
         st.markdown(f"<div class='input-check'>확인: {sales_price:,} 원</div>", unsafe_allow_html=True)
         
     with col2:
@@ -118,10 +127,28 @@ def smart_purchase_calculator_final_v30():
         st.markdown("<div class='section-header'>상품화 비용 입력</div>", unsafe_allow_html=True)
         
         cost_perf = st.radio("성능점검비", [44000, 66000], key='check_cost', horizontal=True)
-        cost_transport = st.selectbox("교통비", [30000, 80000, 130000, 170000, 200000], key='t_cost')
-        cost_dent = st.number_input("판금/도색", value=0, step=10000, format="%d")
-        cost_wheel = st.number_input("휠/타이어", value=0, step=10000, format="%d")
-        cost_etc = st.number_input("기타비용", value=0, step=10000, format="%d")
+        
+        # [수정] 교통비 옵션 추가 (5만원, 60만원) 및 정렬
+        transport_options = [30000, 50000, 80000, 130000, 170000, 200000, 600000]
+        cost_transport = st.selectbox("교통비", transport_options, key='t_cost')
+        
+        # [수정] 만원 단위 숏컷 입력 적용 (on_change 사용)
+        st.caption("※ 비용 입력 팁: 17 입력시 → 170,000원으로 자동 변환")
+        
+        cost_dent = st.number_input(
+            "판금/도색", step=10000, format="%d", 
+            key='cost_dent', on_change=smart_unit_converter, args=('cost_dent',)
+        )
+        
+        cost_wheel = st.number_input(
+            "휠/타이어", step=10000, format="%d", 
+            key='cost_wheel', on_change=smart_unit_converter, args=('cost_wheel',)
+        )
+        
+        cost_etc = st.number_input(
+            "기타비용", step=10000, format="%d", 
+            key='cost_etc', on_change=smart_unit_converter, args=('cost_etc',)
+        )
 
         HIDDEN_AD = 275000
         HIDDEN_POLISH = 120000
@@ -248,4 +275,4 @@ def smart_purchase_calculator_final_v30():
         """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
-    smart_purchase_calculator_final_v30()
+    smart_purchase_calculator_final_v31()
