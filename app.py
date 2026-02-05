@@ -38,9 +38,9 @@ def get_reg_cost(bid_price, p_type):
         else: return 0
 
 # -----------------------------------------------------------
-# 3. 메인 앱 (V35: 총 소요원가(BEP) 항목 추가)
+# 3. 메인 앱 (V36: 복사 텍스트에서만 원가 제외)
 # -----------------------------------------------------------
-def smart_purchase_calculator_final_v35():
+def smart_purchase_calculator_final_v36():
     st.set_page_config(page_title="매입견적서 by 김희주", layout="wide")
     
     st.markdown("""
@@ -185,8 +185,7 @@ def smart_purchase_calculator_final_v35():
     real_income = dealer_income - (sum_non_vat_costs + real_reg + real_interest + tax_33)
     real_margin_rate = (real_income / my_bid) * 100 if my_bid > 0 else 0
 
-    # [추가] 총 소요원가 (Break-even Point) 계산
-    # 매입가 + VAT포함비용 + VAT미포함비용 + 등록비 + 재고금융이자
+    # [계산] 총 소요원가
     total_cost = my_bid + sum_vat_costs + sum_non_vat_costs + real_reg + real_interest
 
     c_final1, c_final2 = st.columns(2)
@@ -200,7 +199,7 @@ def smart_purchase_calculator_final_v35():
     st.write("")
 
     # =========================================================
-    # Step 4. 상세 내역서 (원가 포함)
+    # Step 4. 상세 내역서 (복사본에서만 원가 삭제)
     # =========================================================
     with st.expander("🧾 상세 견적 및 복사 (펼치기)", expanded=True):
         
@@ -208,6 +207,7 @@ def smart_purchase_calculator_final_v35():
         
         with d_col1:
             st.caption("▼ 상세 내역 (확인용)")
+            # [시각적 테이블] 여기에는 총원가 포함 (본인 확인용)
             st.markdown(f"""
             <div class='detail-table-container'>
                 <table class='detail-table'>
@@ -231,10 +231,9 @@ def smart_purchase_calculator_final_v35():
         with d_col2:
             st.caption("▼ 복사 전용 텍스트 (우측상단 아이콘 클릭)")
             
-            # 복사 텍스트에도 '총 소요원가' 추가
+            # [복사 텍스트] 여기서는 총원가 제외 (요청사항 반영)
             copy_text = f"""판매가   : {sales_price:,} 원
 매입가   : {my_bid:,} 원
-총원가   : {total_cost:,} 원
 예상이익율 : {real_margin_rate:.2f} %
 실소득액  : {real_income:,} 원
 -------------------------
@@ -248,4 +247,4 @@ def smart_purchase_calculator_final_v35():
             st.code(copy_text, language="text")
 
 if __name__ == "__main__":
-    smart_purchase_calculator_final_v35()
+    smart_purchase_calculator_final_v36()
