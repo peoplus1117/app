@@ -38,9 +38,9 @@ def get_reg_cost(bid_price, p_type):
         else: return 0
 
 # -----------------------------------------------------------
-# 3. 메인 앱 (V34: 상세내역 좌우 배치로 복사 버튼 상단 이동)
+# 3. 메인 앱 (V35: 총 소요원가(BEP) 항목 추가)
 # -----------------------------------------------------------
-def smart_purchase_calculator_final_v34():
+def smart_purchase_calculator_final_v35():
     st.set_page_config(page_title="매입견적서 by 김희주", layout="wide")
     
     st.markdown("""
@@ -185,6 +185,10 @@ def smart_purchase_calculator_final_v34():
     real_income = dealer_income - (sum_non_vat_costs + real_reg + real_interest + tax_33)
     real_margin_rate = (real_income / my_bid) * 100 if my_bid > 0 else 0
 
+    # [추가] 총 소요원가 (Break-even Point) 계산
+    # 매입가 + VAT포함비용 + VAT미포함비용 + 등록비 + 재고금융이자
+    total_cost = my_bid + sum_vat_costs + sum_non_vat_costs + real_reg + real_interest
+
     c_final1, c_final2 = st.columns(2)
     with c_final1:
         st.markdown("<div style='text-align:center;'>예상 실소득액</div>", unsafe_allow_html=True)
@@ -196,11 +200,10 @@ def smart_purchase_calculator_final_v34():
     st.write("")
 
     # =========================================================
-    # Step 4. 상세 내역서 (좌우 배치로 복사 버튼 상단 노출)
+    # Step 4. 상세 내역서 (원가 포함)
     # =========================================================
     with st.expander("🧾 상세 견적 및 복사 (펼치기)", expanded=True):
         
-        # 좌우 1:1 비율로 컬럼 분할
         d_col1, d_col2 = st.columns([1, 1], gap="medium")
         
         with d_col1:
@@ -210,6 +213,8 @@ def smart_purchase_calculator_final_v34():
                 <table class='detail-table'>
                     <tr><td class='detail-label'>판매가</td><td class='detail-value'>{sales_price:,} 원</td></tr>
                     <tr><td class='detail-label'>매입가</td><td class='detail-value' style='color:#4dabf7;'>{my_bid:,} 원</td></tr>
+                    <tr><td class='detail-label'>총 소요원가</td><td class='detail-value' style='color:#aaa;'>{total_cost:,} 원</td></tr>
+                    <tr><td colspan='2' style='height:8px; border-bottom:1px dashed #777;'></td></tr>
                     <tr><td class='detail-label'>예상이익율</td><td class='detail-value' style='color:#ff6b6b;'>{real_margin_rate:.2f} %</td></tr>
                     <tr><td class='detail-label'>실소득액</td><td class='detail-value'>{real_income:,} 원</td></tr>
                     <tr><td colspan='2' style='height:8px; border-bottom:1px dashed #777;'></td></tr>
@@ -226,9 +231,10 @@ def smart_purchase_calculator_final_v34():
         with d_col2:
             st.caption("▼ 복사 전용 텍스트 (우측상단 아이콘 클릭)")
             
-            # 복사 붙여넣기용 텍스트 생성
+            # 복사 텍스트에도 '총 소요원가' 추가
             copy_text = f"""판매가   : {sales_price:,} 원
 매입가   : {my_bid:,} 원
+총원가   : {total_cost:,} 원
 예상이익율 : {real_margin_rate:.2f} %
 실소득액  : {real_income:,} 원
 -------------------------
@@ -239,8 +245,7 @@ def smart_purchase_calculator_final_v34():
 매입등록비 : {real_reg:,} 원
 낙찰수수료 : {real_fee:,} 원"""
             
-            # 높이를 지정하여 버튼이 잘 보이도록 배치
             st.code(copy_text, language="text")
 
 if __name__ == "__main__":
-    smart_purchase_calculator_final_v34()
+    smart_purchase_calculator_final_v35()
