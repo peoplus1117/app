@@ -38,9 +38,9 @@ def get_reg_cost(bid_price, p_type):
         else: return 0
 
 # -----------------------------------------------------------
-# 3. 메인 앱 (V37_Fixed: 따옴표 에러 수정 완료)
+# 3. 메인 앱 (V38: 모바일 최적화 레이아웃 반영)
 # -----------------------------------------------------------
-def smart_purchase_calculator_final_v37_fixed():
+def smart_purchase_calculator_final_v38():
     st.set_page_config(page_title="매입견적서 by 김희주", layout="wide")
     
     st.markdown("""
@@ -50,7 +50,14 @@ def smart_purchase_calculator_final_v37_fixed():
         
         h1 { font-size: clamp(1.5rem, 4vw, 2.5rem) !important; font-weight: 800 !important; }
         
-        .big-price { font-size: clamp(1.5rem, 3.2vw, 2.0rem); font-weight: 900; color: #4dabf7; margin-bottom: 0px; line-height: 1.2; }
+        /* 금액 폰트 크기를 화면 너비에 따라 더 유연하게 조절 */
+        .big-price { 
+            font-size: clamp(1.1rem, 2.8vw, 1.8rem); 
+            font-weight: 900; 
+            color: #4dabf7; 
+            white-space: nowrap;
+            line-height: 1.2;
+        }
         .real-income { font-size: clamp(1.4rem, 2.5vw, 1.8rem); font-weight: bold; }
         .margin-rate { font-size: clamp(2.0rem, 4vw, 2.5rem); font-weight: 900; color: #ff6b6b; }
         
@@ -65,9 +72,38 @@ def smart_purchase_calculator_final_v37_fixed():
         .section-header {
             font-size: 1.1rem;
             font-weight: bold;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             border-left: 4px solid #4dabf7;
             padding-left: 10px;
+        }
+
+        /* 입찰가 비교 박스 모바일 대응 */
+        .comparison-box {
+            display: flex;
+            align-items: center; /* 하단 정렬에서 중앙 정렬로 변경 */
+            justify-content: space-between;
+            gap: 5px;
+            margin-bottom: 15px;
+            background: rgba(128, 128, 128, 0.05);
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .comparison-item { flex: 1; min-width: 0; }
+        .comparison-label { 
+            font-size: clamp(0.7rem, 2vw, 0.85rem); 
+            font-weight: bold; 
+            opacity: 0.8; 
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .price-divider { 
+            font-size: 1.2rem; 
+            color: #666; 
+            font-weight: 300; 
+            padding: 0 5px;
+            margin-top: 15px;
         }
 
         .detail-table-container { width: 100%; max-width: 450px; margin: 0 auto; }
@@ -78,16 +114,6 @@ def smart_purchase_calculator_final_v37_fixed():
         .detail-value { text-align: right; font-weight: bold; }
         
         .block-container { padding-top: 1.5rem !important; padding-bottom: 3rem !important; }
-
-        .comparison-box {
-            display: flex;
-            align-items: flex-end;
-            gap: 15px;
-            margin-bottom: 10px;
-        }
-        .comparison-item { flex: 1; }
-        .comparison-label { font-size: 0.8rem; font-weight: bold; opacity: 0.7; margin-bottom: 2px; }
-        .price-divider { font-size: 1.5rem; color: #666; font-weight: 300; padding-bottom: 5px; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -169,17 +195,17 @@ def smart_purchase_calculator_final_v37_fixed():
         
         current_my_bid = st.session_state.get('my_bid_input', guide_bid)
         
-        # 가이드와 실제 입찰가를 나란히 표시
+        # [수정] 박스 레이아웃 및 폰트 유연성 강화
         st.markdown(f"""
             <div class='comparison-box'>
                 <div class='comparison-item'>
-                    <div class='comparison-label'>적정 매입가 (Guide)</div>
-                    <div class='big-price'>{guide_bid:,} 원</div>
+                    <div class='comparison-label'>적정 매입가(Guide)</div>
+                    <div class='big-price'>{guide_bid:,}원</div>
                 </div>
                 <div class='price-divider'>/</div>
                 <div class='comparison-item'>
                     <div class='comparison-label'>실제 입찰가</div>
-                    <div class='big-price' style='color: #367fa9;'>{current_my_bid:,} 원</div>
+                    <div class='big-price' style='color: #367fa9;'>{current_my_bid:,}원</div>
                 </div>
             </div>
         """, unsafe_allow_html=True)
@@ -189,7 +215,6 @@ def smart_purchase_calculator_final_v37_fixed():
         my_bid = st.number_input("입찰가 입력", step=10000, format="%d", label_visibility="collapsed", key='my_bid_input', on_change=smart_unit_converter, args=('my_bid_input',))
         
         bid_ratio = (my_bid / sales_price) * 100 if sales_price > 0 else 0
-        # 이 부분의 따옴표 에러를 수정했습니다.
         st.markdown(f"<div class='input-check' style='text-align:right;'>확인: ({bid_ratio:.1f}%) {my_bid:,} 원</div>", unsafe_allow_html=True)
 
     st.markdown("---")
@@ -264,4 +289,4 @@ def smart_purchase_calculator_final_v37_fixed():
             st.code(copy_text, language="text")
 
 if __name__ == "__main__":
-    smart_purchase_calculator_final_v37_fixed()
+    smart_purchase_calculator_final_v38()
