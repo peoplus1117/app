@@ -38,9 +38,9 @@ def get_reg_cost(bid_price, p_type):
         else: return 0
 
 # -----------------------------------------------------------
-# 3. 메인 앱 (V37: 입찰가 가이드/실제값 병렬 표시)
+# 3. 메인 앱 (V37_Fixed: 따옴표 에러 수정 완료)
 # -----------------------------------------------------------
-def smart_purchase_calculator_final_v37():
+def smart_purchase_calculator_final_v37_fixed():
     st.set_page_config(page_title="매입견적서 by 김희주", layout="wide")
     
     st.markdown("""
@@ -79,7 +79,6 @@ def smart_purchase_calculator_final_v37():
         
         .block-container { padding-top: 1.5rem !important; padding-bottom: 3rem !important; }
 
-        /* 가이드와 실제값 나란히 배치하기 위한 스타일 */
         .comparison-box {
             display: flex;
             align-items: flex-end;
@@ -101,7 +100,6 @@ def smart_purchase_calculator_final_v37():
     if 'cost_wheel' not in st.session_state: st.session_state['cost_wheel'] = 0
     if 'cost_etc' not in st.session_state: st.session_state['cost_etc'] = 0
 
-    # [기능] 단축 입력 변환기
     def smart_unit_converter(key):
         val = st.session_state[key]
         if 0 < val <= 20000: 
@@ -169,10 +167,9 @@ def smart_purchase_calculator_final_v37():
     with right_col:
         st.markdown("<div class='section-header'>입찰 금액 결정</div>", unsafe_allow_html=True)
         
-        # 실제 입력된 값 가져오기
         current_my_bid = st.session_state.get('my_bid_input', guide_bid)
         
-        # [수정 부분] 가이드와 실제 입찰가를 나란히 표시
+        # 가이드와 실제 입찰가를 나란히 표시
         st.markdown(f"""
             <div class='comparison-box'>
                 <div class='comparison-item'>
@@ -192,7 +189,8 @@ def smart_purchase_calculator_final_v37():
         my_bid = st.number_input("입찰가 입력", step=10000, format="%d", label_visibility="collapsed", key='my_bid_input', on_change=smart_unit_converter, args=('my_bid_input',))
         
         bid_ratio = (my_bid / sales_price) * 100 if sales_price > 0 else 0
-        st.markdown(f<div class='input-check' style='text-align:right;'>확인: ({bid_ratio:.1f}%) {my_bid:,} 원</div>", unsafe_allow_html=True)
+        # 이 부분의 따옴표 에러를 수정했습니다.
+        st.markdown(f"<div class='input-check' style='text-align:right;'>확인: ({bid_ratio:.1f}%) {my_bid:,} 원</div>", unsafe_allow_html=True)
 
     st.markdown("---")
 
@@ -213,7 +211,6 @@ def smart_purchase_calculator_final_v37():
     real_income = dealer_income - (sum_non_vat_costs + real_reg + real_interest + tax_33)
     real_margin_rate = (real_income / my_bid) * 100 if my_bid > 0 else 0
 
-    # [계산] 총 소요원가
     total_cost = my_bid + sum_vat_costs + sum_non_vat_costs + real_reg + real_interest
 
     c_final1, c_final2 = st.columns(2)
@@ -226,13 +223,9 @@ def smart_purchase_calculator_final_v37():
 
     st.write("")
 
-    # =========================================================
     # Step 4. 상세 내역서
-    # =========================================================
     with st.expander("🧾 상세 견적 및 복사 (펼치기)", expanded=True):
-        
         d_col1, d_col2 = st.columns([1, 1], gap="medium")
-        
         with d_col1:
             st.caption("▼ 상세 내역 (확인용)")
             st.markdown(f"""
@@ -268,8 +261,7 @@ def smart_purchase_calculator_final_v37():
 기타비용   : {cost_etc:,} 원
 매입등록비 : {real_reg:,} 원
 낙찰수수료 : {real_fee:,} 원"""
-            
             st.code(copy_text, language="text")
 
 if __name__ == "__main__":
-    smart_purchase_calculator_final_v37()
+    smart_purchase_calculator_final_v37_fixed()
