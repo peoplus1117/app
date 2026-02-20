@@ -38,9 +38,9 @@ def get_reg_cost(bid_price, p_type):
         else: return 0
 
 # -----------------------------------------------------------
-# 3. 메인 앱 (V36: 복사 텍스트에서만 원가 제외)
+# 3. 메인 앱 (V37: 입찰가 가이드/실제값 병렬 표시)
 # -----------------------------------------------------------
-def smart_purchase_calculator_final_v36():
+def smart_purchase_calculator_final_v37():
     st.set_page_config(page_title="매입견적서 by 김희주", layout="wide")
     
     st.markdown("""
@@ -50,7 +50,7 @@ def smart_purchase_calculator_final_v36():
         
         h1 { font-size: clamp(1.5rem, 4vw, 2.5rem) !important; font-weight: 800 !important; }
         
-        .big-price { font-size: clamp(1.6rem, 3.5vw, 2.2rem); font-weight: 900; color: #4dabf7; margin-bottom: 0px; }
+        .big-price { font-size: clamp(1.5rem, 3.2vw, 2.0rem); font-weight: 900; color: #4dabf7; margin-bottom: 0px; line-height: 1.2; }
         .real-income { font-size: clamp(1.4rem, 2.5vw, 1.8rem); font-weight: bold; }
         .margin-rate { font-size: clamp(2.0rem, 4vw, 2.5rem); font-weight: 900; color: #ff6b6b; }
         
@@ -78,6 +78,17 @@ def smart_purchase_calculator_final_v36():
         .detail-value { text-align: right; font-weight: bold; }
         
         .block-container { padding-top: 1.5rem !important; padding-bottom: 3rem !important; }
+
+        /* 가이드와 실제값 나란히 배치하기 위한 스타일 */
+        .comparison-box {
+            display: flex;
+            align-items: flex-end;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+        .comparison-item { flex: 1; }
+        .comparison-label { font-size: 0.8rem; font-weight: bold; opacity: 0.7; margin-bottom: 2px; }
+        .price-divider { font-size: 1.5rem; color: #666; font-weight: 300; padding-bottom: 5px; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -157,14 +168,31 @@ def smart_purchase_calculator_final_v36():
 
     with right_col:
         st.markdown("<div class='section-header'>입찰 금액 결정</div>", unsafe_allow_html=True)
-        st.markdown("**적정 매입가 (Guide)**")
-        st.markdown(f"<div class='big-price'>{guide_bid:,} 원</div>", unsafe_allow_html=True)
+        
+        # 실제 입력된 값 가져오기
+        current_my_bid = st.session_state.get('my_bid_input', guide_bid)
+        
+        # [수정 부분] 가이드와 실제 입찰가를 나란히 표시
+        st.markdown(f"""
+            <div class='comparison-box'>
+                <div class='comparison-item'>
+                    <div class='comparison-label'>적정 매입가 (Guide)</div>
+                    <div class='big-price'>{guide_bid:,} 원</div>
+                </div>
+                <div class='price-divider'>/</div>
+                <div class='comparison-item'>
+                    <div class='comparison-label'>실제 입찰가</div>
+                    <div class='big-price' style='color: #367fa9;'>{current_my_bid:,} 원</div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+
         st.write("")
         st.markdown("**▼ 실제 입찰금액 입력**")
         my_bid = st.number_input("입찰가 입력", step=10000, format="%d", label_visibility="collapsed", key='my_bid_input', on_change=smart_unit_converter, args=('my_bid_input',))
         
         bid_ratio = (my_bid / sales_price) * 100 if sales_price > 0 else 0
-        st.markdown(f"<div class='input-check' style='text-align:right;'>확인: ({bid_ratio:.1f}%) {my_bid:,} 원</div>", unsafe_allow_html=True)
+        st.markdown(f<div class='input-check' style='text-align:right;'>확인: ({bid_ratio:.1f}%) {my_bid:,} 원</div>", unsafe_allow_html=True)
 
     st.markdown("---")
 
@@ -199,7 +227,7 @@ def smart_purchase_calculator_final_v36():
     st.write("")
 
     # =========================================================
-    # Step 4. 상세 내역서 (복사본에서만 원가 삭제)
+    # Step 4. 상세 내역서
     # =========================================================
     with st.expander("🧾 상세 견적 및 복사 (펼치기)", expanded=True):
         
@@ -207,7 +235,6 @@ def smart_purchase_calculator_final_v36():
         
         with d_col1:
             st.caption("▼ 상세 내역 (확인용)")
-            # [시각적 테이블] 여기에는 총원가 포함 (본인 확인용)
             st.markdown(f"""
             <div class='detail-table-container'>
                 <table class='detail-table'>
@@ -230,8 +257,6 @@ def smart_purchase_calculator_final_v36():
             
         with d_col2:
             st.caption("▼ 복사 전용 텍스트 (우측상단 아이콘 클릭)")
-            
-            # [복사 텍스트] 여기서는 총원가 제외 (요청사항 반영)
             copy_text = f"""판매가   : {sales_price:,} 원
 매입가   : {my_bid:,} 원
 예상이익율 : {real_margin_rate:.2f} %
@@ -247,4 +272,4 @@ def smart_purchase_calculator_final_v36():
             st.code(copy_text, language="text")
 
 if __name__ == "__main__":
-    smart_purchase_calculator_final_v36()
+    smart_purchase_calculator_final_v37()
