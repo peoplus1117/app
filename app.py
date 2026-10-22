@@ -26,8 +26,7 @@ def get_auction_fee(price, route):
 # -----------------------------------------------------------
 # 2. [로직] 매입등록비
 # -----------------------------------------------------------
-def get_reg_cost(bid_price, p_type):
-    threshold = 28500001
+def get_reg_cost(bid_price, p_type, threshold=28550001):
     rate = 0.0105
     if p_type == "개인":
         if bid_price >= threshold: return int(bid_price * rate)
@@ -38,9 +37,9 @@ def get_reg_cost(bid_price, p_type):
         else: return 0
 
 # -----------------------------------------------------------
-# 3. 메인 앱 (V38: 모바일 최적화 레이아웃 반영)
+# 3. 메인 앱 (V44 - 신/구형 로직 선택 버전)
 # -----------------------------------------------------------
-def smart_purchase_calculator_final_v38():
+def smart_purchase_calculator_final_v44():
     st.set_page_config(page_title="매입견적서 by 김희주", layout="wide")
     
     st.markdown("""
@@ -50,7 +49,6 @@ def smart_purchase_calculator_final_v38():
         
         h1 { font-size: clamp(1.5rem, 4vw, 2.5rem) !important; font-weight: 800 !important; }
         
-        /* 금액 폰트 크기를 화면 너비에 따라 더 유연하게 조절 */
         .big-price { 
             font-size: clamp(1.1rem, 2.8vw, 1.8rem); 
             font-weight: 900; 
@@ -77,10 +75,9 @@ def smart_purchase_calculator_final_v38():
             padding-left: 10px;
         }
 
-        /* 입찰가 비교 박스 모바일 대응 */
         .comparison-box {
             display: flex;
-            align-items: center; /* 하단 정렬에서 중앙 정렬로 변경 */
+            align-items: center;
             justify-content: space-between;
             gap: 5px;
             margin-bottom: 15px;
@@ -133,6 +130,13 @@ def smart_purchase_calculator_final_v38():
 
     st.title("매입견적서 by 김희주")
 
+    # 계산 로직 선택 (기본값: 신형)
+    calc_mode = st.selectbox(
+        "⚙️ 계산 로직 선택",
+        ["신형 (목표이익률 3.5% 역산)", "구형 (기존 5.5% 공제 방식)"],
+        index=0
+    )
+
     # Step 1. 상단 정보
     col1, col2, col3 = st.columns([1.5, 1, 1])
     with col1:
@@ -167,21 +171,59 @@ def smart_purchase_calculator_final_v38():
         st.caption(f"※ 광고({HIDDEN_AD//10000}만), 광택({HIDDEN_POLISH//10000}만), 입금({HIDDEN_DEPOSIT//10000}만) 자동 포함")
         cost_repair_total = cost_dent + cost_wheel + cost_etc
 
-    # 가이드 계산
-    fixed_costs = (cost_perf + HIDDEN_AD + cost_transport + cost_repair_total + HIDDEN_POLISH + HIDDEN_DEPOSIT)
-    budget_after_55 = int(sales_price * 0.945)
-    
+    # -----------------------------------------------------------
+    # 적정 매입가(Guide) 역산 로직 (선택 방식에 따른 구분)
+    # -----------------------------------------------------------
     guide_bid = 0
-    start_point = budget_after_55 - fixed_costs
-    for bid in range(start_point, start_point - 5000000, -10000):
-        fee = get_auction_fee(bid, p_route)
-        reg = get_reg_cost(bid, p_type)
-        if (bid + fixed_costs + fee + reg) <= budget_after_55:
-            guide_bid = bid
-            break
-            
-    if guide_bid > 0:
-        guide_bid = math.ceil(guide_bid / 10000) * 10000
+    guide_label = "적정 매입가"
+
+    if calc_mode == "신형 (목표이익률 3.5% 역산)":
+        TARGET_MARGIN_RATE = 3.5
+        guide_label = f"적정 매입가 (목표 {TARGET_MARGIN_RATE:.1f}%)"
+        
+        sum_vat_fixed = cost_perf + HIDDEN_AD
+        sum_non_vat_costs = cost_transport + cost_repair_total + HIDDEN_POLISH + HIDDEN_DEPOSIT
+        min_diff = float('inf')
+
+        if sales_price > 0:
+            start_search = (sales_price // 10000) * 10000
+            for bid in range(start_search, 0, -10000):
+                fee = get_auction_fee(bid, p_route)
+                reg = get_reg_cost(bid, p_type, threshold=28550001)
+                interest = int((bid + fee + reg) * 0.01)
+                
+                sum_vat_costs = sum_vat_fixed + fee
+                gross_margin = sales_price - bid - sum_vat_costs
+                dealer_income = int(gross_margin / 1.1)
+                
+                tax_base = dealer_income - reg
+                tax_33 = int(tax_base * 0.033) if tax_base > 0 else 0
+                
+                income = dealer_income - (sum_non_vat_costs + reg + interest + tax_33)
+                margin_rate = (income / bid) * 100 if bid > 0 else 0
+                
+                diff = abs(margin_rate - TARGET_MARGIN_RATE)
+                if diff < min_diff:
+                    min_diff = diff
+                    guide_bid = bid
+                
+                if margin_rate > TARGET_MARGIN_RATE + 1.0:
+                    break
+
+    else:
+        # 구형 (기존 V38 5.5% 공제 방식)
+        guide_label = "적정 매입가 (기존 5.5% 공제)"
+        fixed_costs = (cost_perf + HIDDEN_AD + cost_transport + cost_repair_total + HIDDEN_POLISH + HIDDEN_DEPOSIT)
+        budget_after_55 = int(sales_price * 0.945)
+        
+        raw_start = budget_after_55 - fixed_costs
+        start_point = (raw_start // 10000) * 10000
+        for bid in range(start_point, start_point - 5000000, -10000):
+            fee = get_auction_fee(bid, p_route)
+            reg = get_reg_cost(bid, p_type, threshold=28500001)
+            if (bid + fixed_costs + fee + reg) <= budget_after_55:
+                guide_bid = bid
+                break
 
     # Guide 동기화
     if 'prev_guide_bid' not in st.session_state:
@@ -195,11 +237,10 @@ def smart_purchase_calculator_final_v38():
         
         current_my_bid = st.session_state.get('my_bid_input', guide_bid)
         
-        # [수정] 박스 레이아웃 및 폰트 유연성 강화
         st.markdown(f"""
             <div class='comparison-box'>
                 <div class='comparison-item'>
-                    <div class='comparison-label'>적정 매입가(Guide)</div>
+                    <div class='comparison-label'>{guide_label}</div>
                     <div class='big-price'>{guide_bid:,}원</div>
                 </div>
                 <div class='price-divider'>/</div>
@@ -219,10 +260,15 @@ def smart_purchase_calculator_final_v38():
 
     st.markdown("---")
 
-    # Step 3. 최종 결과
+    # Step 3. 최종 결과 (현재 선택된 모드 기준으로 계산)
     real_fee = get_auction_fee(my_bid, p_route)
-    real_reg = get_reg_cost(my_bid, p_type)
-    real_interest = int(my_bid * 0.01)
+    threshold_val = 28550001 if calc_mode == "신형 (목표이익률 3.5% 역산)" else 28500001
+    real_reg = get_reg_cost(my_bid, p_type, threshold=threshold_val)
+    
+    if calc_mode == "신형 (목표이익률 3.5% 역산)":
+        real_interest = int((my_bid + real_fee + real_reg) * 0.01)
+    else:
+        real_interest = int(my_bid * 0.01)
     
     sum_vat_costs = cost_perf + HIDDEN_AD + real_fee
     sum_non_vat_costs = cost_transport + cost_repair_total + HIDDEN_POLISH + HIDDEN_DEPOSIT
@@ -252,7 +298,7 @@ def smart_purchase_calculator_final_v38():
     with st.expander("🧾 상세 견적 및 복사 (펼치기)", expanded=True):
         d_col1, d_col2 = st.columns([1, 1], gap="medium")
         with d_col1:
-            st.caption("▼ 상세 내역 (확인용)")
+            st.caption("▼ 상세 내역 (확인용) 수수료 및 매입세액 원가포함")
             st.markdown(f"""
             <div class='detail-table-container'>
                 <table class='detail-table'>
@@ -275,18 +321,18 @@ def smart_purchase_calculator_final_v38():
             
         with d_col2:
             st.caption("▼ 복사 전용 텍스트 (우측상단 아이콘 클릭)")
-            copy_text = f"""판매가   : {sales_price:,} 원
-매입가   : {my_bid:,} 원
+            copy_text = f"""판매가    : {sales_price:,} 원
+매입가    : {my_bid:,} 원
 예상이익율 : {real_margin_rate:.2f} %
-실소득액  : {real_income:,} 원
+실소득액   : {real_income:,} 원
 -------------------------
-교통비    : {cost_transport:,} 원
-판금/도색  : {cost_dent:,} 원
-휠/타이어  : {cost_wheel:,} 원
+교통비     : {cost_transport:,} 원
+판금/도색   : {cost_dent:,} 원
+휠/타이어   : {cost_wheel:,} 원
 기타비용   : {cost_etc:,} 원
 매입등록비 : {real_reg:,} 원
 낙찰수수료 : {real_fee:,} 원"""
             st.code(copy_text, language="text")
 
 if __name__ == "__main__":
-    smart_purchase_calculator_final_v38()
+    smart_purchase_calculator_final_v44()
